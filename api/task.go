@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -12,12 +11,12 @@ import (
 )
 
 type TaskMember struct {
-	ID         string `json:"_id"`
+	ID         string `json:"user_id"`
 	IsAssignee bool   `json:"is_assignee"`
 }
 
 type Task struct {
-	TaskId    string       `json:"task_id"`
+	ID        string       `json:"task_id"`
 	OwnerId   string       `json:"owner_id"`
 	SpaceId   string       `json:"space_id"`
 	Title     string       `json:"title"`
@@ -74,10 +73,6 @@ func GetTasks(tasklist *Tasklist) []Task {
 	var tasks []Task
 	for task := range taskChan {
 		tasks = append(tasks, task.Task)
-	}
-
-	for _, task := range tasks {
-		fmt.Printf("Tasklist: %v contains task: %v with points %v\n", tasklist.Title, task.Title, task.Points)
 	}
 
 	return tasks
