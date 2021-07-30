@@ -40,12 +40,105 @@ var reportCmd = &cobra.Command{
 	Short: "Report project status",
 	Long:  `Report project status`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// report()
-		reportBySelectTasklist()
+		// reportAll()
+		// reportByTasklist()
+		reporyByUser()
 	},
 }
 
-func report() {
+func reporyByUser() {
+	usersChan := make(chan []api.User, 1)
+	go api.GetWorkspaceUsers(usersChan)
+	users := <-usersChan
+
+	userIdMapFirstname := map[string]string{}
+
+	for _, user := range users {
+		userIdMapFirstname[user.ID] = user.FirstName
+	}
+
+	allAssignees := map[string]string{}
+	var allTasks []api.Task
+	tasklists := api.GetTasklists()
+
+	taskIdMapTasklist := map[string]api.Tasklist{}
+
+	for _, tasklist := range tasklists {
+		tasks := api.GetTasks(&tasklist)
+		allTasks = append(allTasks, tasks...)
+
+		for _, task := range tasks {
+			taskIdMapTasklist[task.ID] = tasklist
+		}
+	}
+
+	for _, task := range allTasks {
+		for _, member := range task.Members {
+			if !member.IsAssignee {
+				continue
+			}
+			if _, ok := allAssignees[member.ID]; ok {
+				continue
+			}
+
+			firstname := userIdMapFirstname[member.ID]
+			allAssignees[member.ID] = firstname
+		}
+	}
+
+	var items []string
+	for _, v := range allAssignees {
+		items = append(items, v)
+	}
+
+	prompt := promptui.Select{
+		Label: "Select a user",
+		Items: items,
+	}
+
+	_, result, err := prompt.Run()
+	if err != nil {
+		log.Fatalf("prompt failed: %v\n", err)
+	}
+
+	var selectedUserId string
+	for k, v := range userIdMapFirstname {
+		if v != result {
+			continue
+		}
+		selectedUserId = k
+	}
+
+	isTaskAssignee := func(members []api.TaskMember, id string) bool {
+		for _, member := range members {
+			if member.ID == id && member.IsAssignee {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	fmt.Printf("selected user id: %v\n", selectedUserId)
+
+	var tableData [][]string
+	for _, task := range allTasks {
+		var row []string
+		tasklist := taskIdMapTasklist[task.ID]
+		if ok := isTaskAssignee(task.Members, selectedUserId); ok {
+			row = append(row, tasklist.Title, task.Title, strconv.Itoa(task.Points), result)
+			tableData = append(tableData, row)
+		}
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Tasklist", "Task", "Points", "Assignees"})
+	table.SetRowLine(true)
+	table.AppendBulk(tableData)
+	table.Render()
+}
+
+func reportAll() {
 	fmt.Println("getting tasklists...")
 	tasklists := api.GetTasklists()
 
@@ -55,8 +148,6 @@ func report() {
 
 	fmt.Println("getting users...")
 	go api.GetWorkspaceUsers(usersChan)
-
-	users := <-usersChan
 
 	taskReportRow := map[string]TaskReportRow{}
 	var allTasks []api.Task
@@ -73,6 +164,8 @@ func report() {
 			}
 		}
 	}
+
+	users := <-usersChan
 
 	for _, task := range allTasks {
 		assignees := api.GetTaskAssignees(task, users)
@@ -94,7 +187,7 @@ func report() {
 	table.Render()
 }
 
-func reportBySelectTasklist() {
+func reportByTasklist() {
 	usersChan := make(chan []api.User, 1)
 	go api.GetWorkspaceUsers(usersChan)
 
@@ -108,7 +201,7 @@ func reportBySelectTasklist() {
 	}
 
 	prompt := promptui.Select{
-		Label: "Select tasklist",
+		Label: "Select a tasklist",
 		Items: items,
 	}
 
