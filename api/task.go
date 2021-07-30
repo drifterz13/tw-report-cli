@@ -49,6 +49,8 @@ func GetTask(taskId string, ch chan GetTaskResponse, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
+	defer resp.Body.Close()
+
 	var result GetTaskResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		log.Fatal(err)

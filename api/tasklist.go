@@ -36,6 +36,12 @@ func GetTasklists() []Tasklist {
 	}
 
 	resp, err := http.Post(viper.GetString("apiUrl")+"/tasklist.get-all", "application/json", bytes.NewBuffer(j))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
 	var result GetTasklistsResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

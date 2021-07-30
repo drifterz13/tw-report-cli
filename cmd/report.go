@@ -68,13 +68,9 @@ var reportCmd = &cobra.Command{
 
 		for _, task := range allTasks {
 			assignees := api.GetTaskAssignees(task, users)
-			r := taskReportRow[task.ID]
-			taskReportRow[task.ID] = TaskReportRow{
-				TasklistTitle: r.TasklistTitle,
-				TaskTitle:     r.TaskTitle,
-				TaskPoints:    r.TaskPoints,
-				TaskAssignees: assignees,
-			}
+			row := taskReportRow[task.ID]
+			row.TaskAssignees = assignees
+			taskReportRow[task.ID] = row
 		}
 
 		for _, v := range taskReportRow {

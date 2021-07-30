@@ -72,10 +72,4 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
-
-	accessToken := viper.GetString("accessToken")
-	projectId := viper.GetString("projectId")
-	workspaceId := viper.GetString("workspaceId")
-
-	fmt.Printf("config accesstoken: %v, projectId: %v, workspaceId: %v\n", accessToken, projectId, workspaceId)
 }

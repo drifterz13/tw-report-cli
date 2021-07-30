@@ -37,6 +37,11 @@ func GetWorkspaceUsers(ch chan []User) {
 	}
 
 	resp, err := http.Post(apiUrl+"/workspace.get-user", "application/json", bytes.NewBuffer(j))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
 
 	var result GetWorkspaceUsersResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
