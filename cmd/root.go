@@ -73,7 +73,7 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	accessToken := viper.GetString("access_token")
+	accessToken := viper.GetString("accessToken")
 	projectId := viper.GetString("projectId")
 	workspaceId := viper.GetString("workspaceId")
 

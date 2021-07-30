@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -24,44 +25,65 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type TaskReportRow struct {
+	TasklistTitle string
+	TaskTitle     string
+	TaskPoints    int
+	TaskAssignees string // ex. 'member1,member2'
+}
+
 // reportCmd represents the report command
 var reportCmd = &cobra.Command{
 	Use:   "report",
 	Short: "Report project status",
 	Long:  `Report project status`,
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("getting tasklists...")
 		tasklists := api.GetTasklists()
 
 		var tableData [][]string
 
 		usersChan := make(chan []api.User, 1)
+
+		fmt.Println("getting users...")
 		go api.GetWorkspaceUsers(usersChan)
 
 		users := <-usersChan
-		userIdMapFirstName := map[string]string{}
 
-		for _, user := range users {
-			userIdMapFirstName[user.ID] = user.FirstName
-		}
+		taskReportRow := map[string]TaskReportRow{}
+		var allTasks []api.Task
 
-		for _, tasklist := range tasklists[:3] {
+		fmt.Println("getting tasks...")
+		for _, tasklist := range tasklists {
 			tasks := api.GetTasks(&tasklist)
 			for _, task := range tasks {
-				for _, member := range task.Members {
-					var taskAssignee string
-					if member.IsAssignee {
-						taskAssignee = userIdMapFirstName[member.ID]
-					}
-					row := append([]string{}, tasklist.Title, task.Title, taskAssignee, strconv.Itoa(task.Points))
-					tableData = append(tableData, row)
+				allTasks = append(allTasks, task)
+				taskReportRow[task.ID] = TaskReportRow{
+					TasklistTitle: tasklist.Title,
+					TaskTitle:     task.Title,
+					TaskPoints:    task.Points,
 				}
-
 			}
 		}
 
+		for _, task := range allTasks {
+			assignees := api.GetTaskAssignees(task, users)
+			r := taskReportRow[task.ID]
+			taskReportRow[task.ID] = TaskReportRow{
+				TasklistTitle: r.TasklistTitle,
+				TaskTitle:     r.TaskTitle,
+				TaskPoints:    r.TaskPoints,
+				TaskAssignees: assignees,
+			}
+		}
+
+		for _, v := range taskReportRow {
+			row := append([]string{}, v.TasklistTitle, v.TaskTitle, strconv.Itoa(v.TaskPoints), v.TaskAssignees)
+			tableData = append(tableData, row)
+		}
+
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Tasklist", "Task", "Assignee", "Points"})
-		table.SetAutoMergeCells(true)
+		table.SetHeader([]string{"Tasklist", "Task", "Points", "Assignees"})
 		table.SetRowLine(true)
 		table.AppendBulk(tableData)
 		table.Render()
