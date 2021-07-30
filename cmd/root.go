@@ -65,7 +65,6 @@ func initConfig() {
 	}
 
 	cfgFile = workingdir + "/config.yaml"
-	fmt.Printf("config file path: %v\n", cfgFile)
 	viper.SetConfigFile(cfgFile)
 
 	// If a config file is found, read it in.

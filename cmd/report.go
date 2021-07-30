@@ -20,6 +20,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/drifterz13/tw-reporter-cli/api"
 	"github.com/manifoldco/promptui"
@@ -42,53 +44,24 @@ var reportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// reportAll()
 		// reportByTasklist()
-		reporyByUser()
+		// reporyByUser()
+		reportByUserCon()
 	},
 }
 
-func reporyByUser() {
+func reportByUserCon() {
 	usersChan := make(chan []api.User, 1)
+	tasklistsChan := make(chan []api.Tasklist, 1)
+
 	go api.GetWorkspaceUsers(usersChan)
+	go api.GetTasklistsCon(tasklistsChan)
+
 	users := <-usersChan
 
-	userIdMapFirstname := map[string]string{}
-
-	for _, user := range users {
-		userIdMapFirstname[user.ID] = user.FirstName
-	}
-
-	allAssignees := map[string]string{}
-	var allTasks []api.Task
-	tasklists := api.GetTasklists()
-
-	taskIdMapTasklist := map[string]api.Tasklist{}
-
-	for _, tasklist := range tasklists {
-		tasks := api.GetTasks(&tasklist)
-		allTasks = append(allTasks, tasks...)
-
-		for _, task := range tasks {
-			taskIdMapTasklist[task.ID] = tasklist
-		}
-	}
-
-	for _, task := range allTasks {
-		for _, member := range task.Members {
-			if !member.IsAssignee {
-				continue
-			}
-			if _, ok := allAssignees[member.ID]; ok {
-				continue
-			}
-
-			firstname := userIdMapFirstname[member.ID]
-			allAssignees[member.ID] = firstname
-		}
-	}
-
 	var items []string
-	for _, v := range allAssignees {
-		items = append(items, v)
+	for _, user := range users {
+		fullname := user.FirstName + " " + user.LastName
+		items = append(items, fullname)
 	}
 
 	prompt := promptui.Select{
@@ -101,34 +74,66 @@ func reporyByUser() {
 		log.Fatalf("prompt failed: %v\n", err)
 	}
 
+	userIdMapFullname := map[string]string{}
+	for _, user := range users {
+		userIdMapFullname[user.ID] = user.FirstName + " " + user.LastName
+	}
 	var selectedUserId string
-	for k, v := range userIdMapFirstname {
+	for k, v := range userIdMapFullname {
 		if v != result {
 			continue
 		}
+
 		selectedUserId = k
 	}
 
-	isTaskAssignee := func(members []api.TaskMember, id string) bool {
-		for _, member := range members {
-			if member.ID == id && member.IsAssignee {
-				return true
-			}
+	fmt.Printf("selected user: %v, id: %v\n", userIdMapFullname[selectedUserId], selectedUserId)
+
+	tasklists := <-tasklistsChan
+	close(tasklistsChan)
+
+	var wg sync.WaitGroup
+	taskWithTasklistChan := make(chan []api.TaskWithTasklist)
+
+	startFetchTasksTime := time.Now()
+	for _, tasklist := range tasklists {
+		if tasklist.IsDeleted {
+			continue
 		}
 
-		return false
+		list := tasklist
+		wg.Add(1)
+
+		go api.GetTasksCon(&list, taskWithTasklistChan, &wg)
 	}
 
-	fmt.Printf("selected user id: %v\n", selectedUserId)
+	go func() {
+		wg.Wait()
+		close(taskWithTasklistChan)
+	}()
+
+	var allTasksWithTasklist []api.TaskWithTasklist
+	for taskWithTasklist := range taskWithTasklistChan {
+		for _, t := range taskWithTasklist {
+			allTasksWithTasklist = append(allTasksWithTasklist, t)
+		}
+	}
+	fmt.Printf("fetch tasks duration: %v\n", time.Since(startFetchTasksTime))
+
+	var userTasksWithTasklist []api.TaskWithTasklist
+	for _, t := range allTasksWithTasklist {
+		for _, member := range t.Task.Members {
+			if member.IsAssignee && member.ID == selectedUserId {
+				userTasksWithTasklist = append(userTasksWithTasklist, t)
+			}
+		}
+	}
 
 	var tableData [][]string
-	for _, task := range allTasks {
+	for _, t := range userTasksWithTasklist {
 		var row []string
-		tasklist := taskIdMapTasklist[task.ID]
-		if ok := isTaskAssignee(task.Members, selectedUserId); ok {
-			row = append(row, tasklist.Title, task.Title, strconv.Itoa(task.Points), result)
-			tableData = append(tableData, row)
-		}
+		row = append(row, t.List.Title, t.Task.Title, strconv.Itoa(t.Task.Points), userIdMapFullname[selectedUserId])
+		tableData = append(tableData, row)
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)

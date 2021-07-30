@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -57,6 +58,29 @@ func GetTask(taskId string, ch chan GetTaskResponse, wg *sync.WaitGroup) {
 	}
 
 	ch <- result
+}
+
+type TaskWithTasklist struct {
+	Task
+	List Tasklist
+}
+
+func GetTasksCon(tasklist *Tasklist, ch chan []TaskWithTasklist, wg *sync.WaitGroup) {
+	defer wg.Done()
+	tasks := GetTasks(tasklist)
+
+	fmt.Printf("received total tasks: %v from tasklist: %v\n", len(tasks), tasklist.Title)
+
+	var t []TaskWithTasklist
+	for _, task := range tasks {
+		r := TaskWithTasklist{
+			Task: task,
+			List: *tasklist,
+		}
+		t = append(t, r)
+	}
+
+	ch <- t
 }
 
 func GetTasks(tasklist *Tasklist) []Task {
