@@ -16,8 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"os"
 	"strconv"
 
@@ -32,22 +30,37 @@ var reportCmd = &cobra.Command{
 	Short: "Report project status",
 	Long:  `Report project status`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("report called")
 		tasklists := api.GetTasklists()
 
 		var tableData [][]string
 
-		for _, tasklist := range tasklists {
-			tasks := api.GetTasks(&tasklist)
+		usersChan := make(chan []api.User, 1)
+		go api.GetWorkspaceUsers(usersChan)
 
+		users := <-usersChan
+		userIdMapFirstName := map[string]string{}
+
+		for _, user := range users {
+			userIdMapFirstName[user.ID] = user.FirstName
+		}
+
+		for _, tasklist := range tasklists[:3] {
+			tasks := api.GetTasks(&tasklist)
 			for _, task := range tasks {
-				row := append([]string{}, tasklist.Title, task.Title, strconv.Itoa(task.Points))
-				tableData = append(tableData, row)
+				for _, member := range task.Members {
+					var taskAssignee string
+					if member.IsAssignee {
+						taskAssignee = userIdMapFirstName[member.ID]
+					}
+					row := append([]string{}, tasklist.Title, task.Title, taskAssignee, strconv.Itoa(task.Points))
+					tableData = append(tableData, row)
+				}
+
 			}
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Tasklist title", "Task title", "Points"})
+		table.SetHeader([]string{"Tasklist", "Task", "Assignee", "Points"})
 		table.SetAutoMergeCells(true)
 		table.SetRowLine(true)
 		table.AppendBulk(tableData)
