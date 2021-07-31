@@ -134,7 +134,7 @@ func reportByUser(usersCh <-chan []api.User, tasklistCh <-chan []api.Tasklist) {
 
 		wg.Add(1)
 		go func(tasklist api.Tasklist) {
-			api.GetTasksCon(&tasklist, taskWithTasklistChan, &wg)
+			api.GetTasksWithTasklist(&tasklist, taskWithTasklistChan, &wg)
 		}(tasklist)
 	}
 
@@ -185,7 +185,7 @@ func reportAll(usersCh <-chan []api.User, tasklistCh <-chan []api.Tasklist) {
 
 		wg.Add(1)
 		go func(tasklist api.Tasklist) {
-			api.GetTasksCon(&tasklist, taskWithTasklistChan, &wg)
+			api.GetTasksWithTasklist(&tasklist, taskWithTasklistChan, &wg)
 		}(tasklist)
 	}
 
@@ -232,7 +232,7 @@ func reportByTasklist(usersCh <-chan []api.User, tasklistCh <-chan []api.Tasklis
 		log.Fatalf("prommpt failed %v\n", err)
 	}
 
-	fmt.Printf("select: %v, index: %v\n", result, index)
+	fmt.Printf("select: `%v (%v)`\n", result, index)
 
 	taskReport := &TaskReport{
 		header: []string{"Tasklist", "Task", "Points", "Assignees"},

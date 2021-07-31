@@ -65,11 +65,11 @@ type TaskWithTasklist struct {
 	List Tasklist
 }
 
-func GetTasksCon(tasklist *Tasklist, ch chan []TaskWithTasklist, wg *sync.WaitGroup) {
+func GetTasksWithTasklist(tasklist *Tasklist, ch chan []TaskWithTasklist, wg *sync.WaitGroup) {
 	defer wg.Done()
 	tasks := GetTasks(tasklist)
 
-	fmt.Printf("received total tasks: %v from tasklist: %v\n", len(tasks), tasklist.Title)
+	fmt.Printf("received `%v` tasks from tasklist: %v\n", len(tasks), tasklist.Title)
 
 	var t []TaskWithTasklist
 	for _, task := range tasks {

@@ -59,7 +59,7 @@ func GetWorkspaceUsers(ch chan []User) {
 	}
 
 	elapsed := time.Since(start)
-	fmt.Printf("Elapsed time for fetching useres: %v\n", elapsed)
+	fmt.Printf("elapsed time for fetching useres: %v\n", elapsed)
 
 	ch <- users
 }
