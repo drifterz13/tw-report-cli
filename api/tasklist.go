@@ -23,13 +23,7 @@ type GetTasklistsResponse struct {
 	Tasklists []Tasklist `json:"tasklists"`
 }
 
-func GetTasklistsCon(ch chan []Tasklist) {
-	takslists := GetTasklists()
-
-	ch <- takslists
-}
-
-func GetTasklists() []Tasklist {
+func GetTasklists(ch chan []Tasklist) []Tasklist {
 	val := map[string]string{
 		"access_token": viper.GetString("accessToken"),
 		"space_id":     viper.GetString("workspaceId"),
@@ -61,6 +55,8 @@ func GetTasklists() []Tasklist {
 			activeTasklists = append(activeTasklists, tasklist)
 		}
 	}
+
+	ch <- activeTasklists
 
 	return activeTasklists
 }

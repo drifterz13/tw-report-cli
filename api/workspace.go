@@ -3,8 +3,10 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -22,6 +24,8 @@ type GetWorkspaceUsersResponse struct {
 }
 
 func GetWorkspaceUsers(ch chan []User) {
+	start := time.Now()
+
 	apiUrl := viper.GetString("apiUrl")
 	accessToken := viper.GetString("accessToken")
 	workspaceId := viper.GetString("workspaceId")
@@ -53,6 +57,9 @@ func GetWorkspaceUsers(ch chan []User) {
 	for _, user := range result.Users {
 		users = append(users, user)
 	}
+
+	elapsed := time.Since(start)
+	fmt.Printf("Elapsed time for fetching useres: %v\n", elapsed)
 
 	ch <- users
 }
