@@ -80,7 +80,7 @@ var reportCmd = &cobra.Command{
 		case userOption:
 			reportByUser(usersChan, tasklistChan)
 		default:
-			fmt.Printf("Unknow option: %v\n", result)
+			fmt.Printf("Unknown option: %v\n", result)
 		}
 
 	},
