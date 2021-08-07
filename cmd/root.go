@@ -17,7 +17,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+
 	"os"
 
 	"github.com/spf13/cobra"
@@ -29,8 +29,7 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "tw-reporter-cli",
-	Short: "CLI for generate Taskworld project report.",
-	Long:  `CLI for generate Taskworld project report.`,
+	Short: "CLI for Taskworld application.",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -44,28 +43,25 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "set config file")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	workingdir, err := os.Getwd()
+	if cfgFile != "" {
+		// Use config file from the flag.
+		viper.SetConfigFile(cfgFile)
+	} else {
+		// Find home directory.
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
 
-	if err != nil {
-		log.Fatal(err)
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName(".tw-config.yml")
 	}
 
-	cfgFile = workingdir + "/config.yaml"
-	viper.SetConfigFile(cfgFile)
+	viper.AutomaticEnv()
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

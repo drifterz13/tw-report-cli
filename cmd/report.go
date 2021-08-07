@@ -50,7 +50,6 @@ func (tr *TaskReport) printTable() {
 var reportCmd = &cobra.Command{
 	Use:   "report",
 	Short: "Report project status",
-	Long:  `Report project status`,
 	Run: func(cmd *cobra.Command, args []string) {
 		allOption := "All"
 		tasklistOption := "By Tasklist"
@@ -87,6 +86,7 @@ var reportCmd = &cobra.Command{
 }
 
 func reportByUser(usersCh <-chan []api.User, tasklistCh <-chan []api.Tasklist) {
+	fmt.Println("Loading users...")
 	users := <-usersCh
 
 	var items []string
